@@ -1,160 +1,168 @@
-import java.rmi.*;
-import java.rmi.server.*;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Random;
-import java.util.Scanner;
-
-import javax.swing.JOptionPane;
 
 
-
-import java.io.*;
 import java.net.MalformedURLException;
+import java.rmi.Naming;
+import java.rmi.NotBoundException;
+import java.rmi.RemoteException;
+import javax.swing.JOptionPane;
+import java.rmi.server.*;
+import java.lang.Object;
+import javax.swing.JOptionPane;
 
 
 
 public class Client {
 	private static ServerInterface look_up;
-	public Servers machine1;
-	public Servers machine2;
-	public Servers machine3;
-	
-	public static void conexionServer(Servers maquina) {
+	public Servers maquina1;
+	public Servers maquina2;
+	public Servers maquina3;
+
+	public static void conexionServer(Servers maquina){
 		long startTime = System.nanoTime();
 		try {
-			look_up = (ServerInterface) Naming.lookup("//" + maquina.NombreServidor+"/ABC");
-			maquina.Primos = look_up.Primos(maquina.Numero, maquina.NombreServidor);
-			System.out.println("Servidor " + maquina.NombreServidor + "             " + "Tiempo  " + maquina.Tiempo+ "milisegundos" + "->" + maquina.Primos);
-		} catch (Exception e)
+                    look_up = (ServerInterface) Naming.lookup("//"+maquina.NombreServidor+"/MyServer");
+                    maquina.Primos = look_up.Primos(maquina.Numero, maquina.NombreServidor);
+                    maquina.Tiempo = look_up.Tiempo(startTime);
+                    System.out.println("Los resultados son:   "+maquina.NombreServidor+"        "+" Tiempo  "+maquina.Tiempo+" segundos" + " :"+maquina.Primos);
+                   }
+		catch (Exception e)
 		{
-			System.out.println("No se puede conectar");
-			e.printStackTrace();
+			System.out.println(" ERROR EN CONEXION ");
+		    e.printStackTrace();
 		}
-		
 	}
+        
 	
-	public static String ObtenerPerdedor(Servers machine1, Servers machine2, Servers machine3) {
+	public static String ObtenerPerdedor(Servers maquina1, Servers maquina2, Servers maquina3){
+		//Llegando a esta funciï¿½n, asumo que existen al menos dos maquinas activas
 		String Perdedor;
 		
 		Perdedor = "";
-		//HILOS IMPLEMENTACION DE ESTADOS
-		if(machine1.Estado) {
-			if(machine2.Estado) {
-				if(machine3.Estado) {
-					if(machine1.Tiempo < machine2.Tiempo) {
-						if(machine2.Tiempo < machine3.Tiempo) {
-							Perdedor = "machine3";
-						} else {
-							Perdedor = "machine2";
+		if(maquina1.Estado) {
+			if(maquina2.Estado) {
+				if(maquina3.Estado) {
+					if(maquina1.Tiempo < maquina2.Tiempo) {
+						if(maquina2.Tiempo < maquina3.Tiempo) {
+							Perdedor = "maquina3";
 						}
-					} else {
-						if(machine1.Tiempo < machine3.Tiempo) {
-							Perdedor = "machine3";
-						} else {
-							Perdedor = "machine1";
+						else {
+							Perdedor = "maquina2";
 						}
 					}
-					
-				}else {
-					if (machine1.Tiempo < machine2.Tiempo) {
-						Perdedor = "machine2";
-					} else {
-						Perdedor = "machine1";
+					else {
+						if(maquina1.Tiempo < maquina3.Tiempo) {
+							Perdedor = "maquina3";
+						}
+						else {
+							Perdedor = "maquina1";
+						}
 					}
-				}
-			} else {
-				if (machine1.Tiempo < machine3.Tiempo) {
-					Perdedor = "machine3";
-				} else {
-					Perdedor = "machine1";
+				}else
+				{
+					if(maquina1.Tiempo < maquina2.Tiempo) {
+						Perdedor = "maquina2";
+					}
+					else {
+						Perdedor = "maquina1";
+					}
 				}
 			}
-		} else {
-			if(machine2.Tiempo < machine3.Tiempo) {
-				Perdedor = "machine3";
-			} else {
-				Perdedor = "machine2";
+			else {
+				if(maquina1.Tiempo < maquina3.Tiempo) {
+					Perdedor = "maquina3";
+				}
+				else {
+					Perdedor = "maquina1";
+				}
+			}
+		}
+		else {
+			if(maquina2.Tiempo < maquina3.Tiempo) {
+				Perdedor = "maquina3";
+			}
+			else {
+				Perdedor = "maquina2";
 			}
 		}
 		
 		return Perdedor;
 	}
+        public static void desconectar(Servers maquina){
+            try {
+                look_up = (ServerInterface) Naming.lookup("//"+maquina.NombreServidor+"/MyServer");
+                look_up.ApagarMaquina();
+               }
+               catch (Exception e)
+               {
+                System.out.println("Ha ocurrido una excepcion no esperada...");
+                   e.printStackTrace();
+                }
+            //System.exit(0);
+        } 
 	
-	public static void desconectar(Servers maquina) {
-		try {
-			look_up = (ServerInterface) Naming.lookup("//" + maquina.NombreServidor + "/ABC");
-			look_up.ApagarMaquina();
-		} catch (Exception e) {
-			System.out.println("Pilas, error");
-			e.printStackTrace();
-		}
-	}
-	
-	public static void main(String[] args) throws MalformedURLException, RemoteException, NotBoundException{
-		boolean Seguir;
-		boolean PrimeraVez;
-		String MaquinaPerdedora;
-		long num = Long.parseLong(JOptionPane.showInputDialog("Digite un numero: (entre 10 a 15 digitos)")); 
-		Servers machine1 = new Servers("192.168.0.26",num, true);
-		Servers machine2 = new Servers("192.168.43.185",num, true);
-        Servers machine3 = new Servers("192.168.43.48",num, true);
-        
-	 Seguir = true;
-     PrimeraVez = true;
-     MaquinaPerdedora = "";
-     while(Seguir) {
-             if(PrimeraVez){
-                     machine1.start();
-             }else{
-                 if(machine1.Estado){
-                	 machine1 = new Servers("192.168.0.1",num, true);
-                	 machine1.start();
-                 }
-             }
-             if(PrimeraVez){
-            	 machine2.start();
-             }else{
-                 if(machine2.Estado){
-                	 machine2 = new Servers("192.168.43.185",num, true);
-                	 machine2.start();
-                 }
-             }
-             if(PrimeraVez){
-            	 machine3.start();
-             }else{
-                 if(machine3.Estado){
-                	 machine3 = new Servers("192.168.43.48",num, true);
-                	 machine3.start();
-                 }
-             }
-             PrimeraVez = false;
-             //REVISO HILOS
-             while(machine1.isAlive() || machine2.isAlive() || machine3.isAlive()) {
+	public static void main(String[] args) throws MalformedURLException, RemoteException, NotBoundException {
+        boolean Seguir;
+        boolean PrimeraVez;
+        String MaquinaPerdedora;
+        long num = Long.parseLong(JOptionPane.showInputDialog("Ingrese un numero entre 10 y 15 digitos")); 
+        Servers maquina1 = new Servers("192.168.0.14",num, true);
+        Servers maquina2 = new Servers("192.168.0.5",num, true);
+        Servers maquina3 = new Servers("192.168.0.10",num, true);
 
-             }
+        Seguir = true;
+        PrimeraVez = true;
+        MaquinaPerdedora = "";
+        while(Seguir) {
+                if(PrimeraVez){
+                        maquina1.start();
+                }else{
+                    if(maquina1.Estado){
+                        maquina1 = new Servers("192.168.0.14",num, true);
+                        maquina1.start();
+                    }
+                }
+                if(PrimeraVez){
+                    maquina2.start();
+                }else{
+                    if(maquina2.Estado){
+                        maquina2 = new Servers("192.168.0.5",num, true);
+                        maquina2.start();
+                    }
+                }
+                if(PrimeraVez){
+                        maquina3.start();
+                }else{
+                    if(maquina3.Estado){
+                    maquina3 = new Servers("192.168.0.10",num, true);
+                    maquina3.start();
+                    }
+                }
+                PrimeraVez = false;
+                //Chequeo hasta que todos los hilos hayan terminado ejecuciï¿½n...
+                while(maquina1.isAlive() || maquina2.isAlive() || maquina3.isAlive()) {
 
-             MaquinaPerdedora = ObtenerPerdedor(machine1, machine2, machine3); 
-             System.out.println("La peor maquina fue: " + MaquinaPerdedora);
-             
-             if("machine1".equals(MaquinaPerdedora)) {
-                 machine1.Estado = false;
-                 desconectar(machine1);
-                 System.out.println ("Machine 1 apagada");
-             }else{
-                 if("maquina2".equals(MaquinaPerdedora)) {
-                 machine2.Estado = false;
-                 desconectar(machine2);
-                 System.out.println ("Machine2 apagada");
-                 }else{
-                 machine3.Estado = false;
-                 desconectar(machine3);
-                 System.out.println ("Machine3 apagada");
-                 }
-             }
-             Seguir = (machine1.Estado && machine3.Estado) || (machine1.Estado && machine2.Estado) || (machine2.Estado && machine3.Estado);
-        }
-     System.out.println(" FIN DE LA COMPETENCIA ");
- }
-}      
+                }
+
+                MaquinaPerdedora = ObtenerPerdedor(maquina1, maquina2, maquina3); 
+                System.out.println("La maquina perdedora fue " + MaquinaPerdedora);
+                //Inhabilito la maquina perdedora...
+                if("maquina1".equals(MaquinaPerdedora)) {
+                    maquina1.Estado = false;
+                    desconectar(maquina1);
+                    System.out.println ("Maquina 1 apagada");
+                }else{
+                    if("maquina2".equals(MaquinaPerdedora)) {
+                    maquina2.Estado = false;
+                    desconectar(maquina2);
+                    System.out.println ("Maquina 2 apagada");
+                    }else{
+                    maquina3.Estado = false;
+                    desconectar(maquina3);
+                    System.out.println ("Maquina 3 apagada");
+                    }
+                }
+                Seguir = (maquina1.Estado && maquina3.Estado) || (maquina1.Estado && maquina2.Estado) || (maquina2.Estado && maquina3.Estado);
+           }
+        System.out.println(" FIN DE LA COMPETENCIA ");
+    }
+}   
